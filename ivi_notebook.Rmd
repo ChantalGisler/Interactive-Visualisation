@@ -1,0 +1,140 @@
+---
+title: "IVI Notebook"
+output: html_notebook
+---
+#Setup
+```{r}
+#install.packages("tidyverse")
+#install.packages("PerformanceAnalytics")
+#install.packages("ggfortify")
+#install.packages("fastDummies")
+
+library(tidyverse) # core package includes following packages: tidyr, dplyr, ggplot2, readr, purrr, tibble, stringr, forcats
+library(plotly)
+library("PerformanceAnalytics") #for correlation
+library(broom) # for model quantification
+library(ggfortify) # for visualizing model fits
+library(fastDummies)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+bike_data <- read_csv("SeoulBikeData.csv",
+  show_col_types = FALSE,
+  col_types = cols(Date = col_date(format = "%d/%m/%Y"),
+    Seasons = col_factor(levels = c("Winter", "Spring", "Summer", "Autumn"),
+                         ordered = TRUE),
+    Holiday = col_factor(),
+    "Functioning Day" = col_factor()
+  ))
+```
+
+```{r}
+bike_data <- bike_data %>%
+  mutate(day = weekdays(Date), 
+         month = months(Date),
+         day_time = case_when(
+           Hour >= 5 & Hour < 11 ~ "Morning",
+           Hour >= 11 & Hour < 15 ~ "Noon",
+           Hour >= 15 & Hour < 18 ~ "Afternoon",
+           Hour >= 18 & Hour < 22 ~ "Evening",
+           Hour < 5 | Hour >= 22 ~ "Night")) %>%
+  select(Date,month,day,Hour,day_time, Holiday, 'Rented Bike Count',everything())
+```
+
+```{r}
+bike_data$day_time <- factor(bike_data$day_time,
+                             levels = c("Morning", "Noon", "Afternoon", "Evening", "Night"),ordered = TRUE)
+
+bike_data$day <- factor(bike_data$day, 
+                        levels = c("Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag" ))
+
+bike_data$month <- factor(bike_data$month, 
+                          levels = c("Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober","November", "Dezember"))
+```
+
+#LO1: Performance
+```{r}
+grafik_1 <- bike_data %>%
+  plot_ly(x = ~Seasons) %>%
+	add_histogram(color = I("darkgreen"), opacity = 0.9) %>%
+  layout(title = "Total bike count by seasons")
+```
+
+```{r}
+start <- Sys.time()
+grafik_1
+end <- Sys.time()
+print(end - start)
+```
+```{r}
+grafik_4 <- ggplot(bike_data, aes(`Temperature` ,`Rented Bike Count`, color = `Seasons`))+
+  geom_jitter(alpha = 0.3)+
+  scale_fill_grey(start = 0.2, end = 0.8,na.value = "red")+
+  stat_smooth(method = lm, se = FALSE, color = "red")+
+  labs(
+    x = "Temperature in Celsius",
+    y = "Rented Bikes",
+    title = "Correlation between temperature and rented bikes")+
+  theme_minimal()
+```
+
+```{r}
+start <- Sys.time()
+grafik_4
+end <- Sys.time()
+print(end - start)
+```
+
+#LO2: Dashboard design principes
+
+## Grafik 3: 
+```{r}
+bike_data %>%
+  plot_ly(x = ~Seasons) %>%
+	add_histogram(color = I("navy"), opacity = 0.9) %>%
+  layout(title = "Total bike count by seasons")
+```
+
+##Grafik 4: 
+```{r}
+grafik_4 <- ggplot(bike_data, aes(`Temperature` ,`Rented Bike Count`, color = `Seasons`))+
+  geom_jitter(alpha = 0.3)+
+  scale_fill_grey(start = 0.2, end = 0.8,na.value = "red")+
+  stat_smooth(method = lm, se = FALSE, color = "red")+
+  labs(
+    x = "Temperature in Celsius",
+    y = "Rented Bikes",
+    title = "Correlation between temperature and rented bikes")+
+  theme_minimal()
+```
+
+```{r}
+ggplotly(grafik_4)
+```
+##Grafik 5
+```{r}
+scatter <- ggplot(bike_data,aes(x= Snowfall, y = `Rented Bike Count`))+
+  geom_jitter(shape=8, (aes(color = Temperature)))+
+  scale_color_gradient(low="dark blue", high= "light blue")+
+  facet_wrap(~month)+
+  ggtitle("Bike rental and the impact of snow")+
+  theme_minimal()
+```
+
+```{r}
+ggplotly(scatter)
+```
+
+
+```{r}
+grafik_4 <- plot_ly() %>%
+  add_trace(bike, x = ~'Hour', y = ~bike_data$'Rented Bike Count', type = 'scatter', mode = 'lines+markers', name = 'Name of Trace 1') %>%
+  layout(title = 'Plot Title')
+
+grafik_4
+```
+
+#LO3:
+#LO4: Evaluation
