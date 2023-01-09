@@ -20,6 +20,19 @@ library(ggplot2)
 ```
 
 ```{r}
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(magrittr)
+#install.packages("PerformanceAnalytics")
+library("PerformanceAnalytics")
+#install.packages("scales")
+#library(scales)
+```
+
+### Data Wrangling
+```{r}
 bike_data <- read_csv("SeoulBikeData.csv",
   show_col_types = FALSE,
   col_types = cols(Date = col_date(format = "%d/%m/%Y"),
@@ -52,24 +65,27 @@ bike_data$day <- factor(bike_data$day,
 
 bike_data$month <- factor(bike_data$month, 
                           levels = c("Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober","November", "Dezember"))
+
 ```
 
 #LO1: Performance
+## Grafik 1
 ```{r}
 grafik_1 <- bike_data %>%
   plot_ly(x = ~Seasons) %>%
 	add_histogram(color = I("darkgreen"), opacity = 0.9) %>%
   layout(title = "Total bike count by seasons")
 ```
-
+## Zeit messen bei Grafik 1
 ```{r}
 start <- Sys.time()
 grafik_1
 end <- Sys.time()
 print(end - start)
 ```
+## Grafik 2
 ```{r}
-grafik_4 <- ggplot(bike_data, aes(`Temperature` ,`Rented Bike Count`, color = `Seasons`))+
+grafik_2 <- ggplot(bike_data, aes(`Temperature` ,`Rented Bike Count`, color = `Seasons`))+
   geom_jitter(alpha = 0.3)+
   scale_fill_grey(start = 0.2, end = 0.8,na.value = "red")+
   stat_smooth(method = lm, se = FALSE, color = "red")+
@@ -79,30 +95,30 @@ grafik_4 <- ggplot(bike_data, aes(`Temperature` ,`Rented Bike Count`, color = `S
     title = "Correlation between temperature and rented bikes")+
   theme_minimal()
 ```
-
+## Zeit messen bei Grafik 2
 ```{r}
 start <- Sys.time()
-grafik_4
+grafik_2
 end <- Sys.time()
 print(end - start)
 ```
-
 #LO2: Dashboard design principes
-
 ## Grafik 3: 
 ```{r}
-bike_data %>%
+grafik_3 <- bike_data %>%
   plot_ly(x = ~Seasons) %>%
 	add_histogram(color = I("navy"), opacity = 0.9) %>%
   layout(title = "Total bike count by seasons")
+
+grafik_3
 ```
 
 ##Grafik 4: 
 ```{r}
-grafik_4 <- ggplot(bike_data, aes(`Temperature` ,`Rented Bike Count`, color = `Seasons`))+
+grafik_4 <- ggplot(bike_data, aes(`Temperature` ,`Rented Bike Count`, color = `Seasons`, colors = "Dark2"))+
   geom_jitter(alpha = 0.3)+
   scale_fill_grey(start = 0.2, end = 0.8,na.value = "red")+
-  stat_smooth(method = lm, se = FALSE, color = "red")+
+  stat_smooth(method = lm, se = FALSE, color = "black")+
   labs(
     x = "Temperature in Celsius",
     y = "Rented Bikes",
@@ -115,26 +131,91 @@ ggplotly(grafik_4)
 ```
 ##Grafik 5
 ```{r}
-scatter <- ggplot(bike_data,aes(x= Snowfall, y = `Rented Bike Count`))+
+grafik_5 <- ggplot(bike_data,aes(x= Snowfall, y = `Rented Bike Count`))+
   geom_jitter(shape=8, (aes(color = Temperature)))+
   scale_color_gradient(low="dark blue", high= "light blue")+
   facet_wrap(~month)+
-  ggtitle("Bike rental and the impact of snow")+
+  xlab("Schnee in Zentimetern") +
+  ylab("Ausgeliehene Fahrräder")+
+  ggtitle("Anzahl ausgeliehene Fahrräder und der Einfluss von Schnee")+
   theme_minimal()
+
+grafik_5
 ```
 
 ```{r}
-ggplotly(scatter)
+ggplotly(grafik_5)
 ```
 
+## Zoomen und Slider: Schlechtes Beispiel
+```{r}
+grafik_6 <- ggplot(bike_data, aes(Hour, `Rented Bike Count`))+
+  geom_point(aes(color = day), alpha = 0.5) +
+  geom_smooth(aes(color = day, fill = day), method = "lm")+
+  xlab("Uhrzeit") +
+  ylab("Anzahl ausgeliehener Fahrräder")+
+  theme_minimal()
+
+grafik_6
+```
 
 ```{r}
-grafik_4 <- plot_ly() %>%
-  add_trace(bike, x = ~'Hour', y = ~bike_data$'Rented Bike Count', type = 'scatter', mode = 'lines+markers', name = 'Name of Trace 1') %>%
-  layout(title = 'Plot Title')
+ggplotly(grafik_6, dynamicTicks = TRUE) %>%
+  rangeslider() %>%
+  layout(hovermode = "x")
+```
+## Zoomen und Slider: Gutes Beispiel
+```{r}
+# Schritt 1: Übersichtliche Grafik machen mit Stunde und ausgeliehenen Fahrrädern nach Wochentag aufgeteilt. 
 
-grafik_4
+library(RColorBrewer)
+display.brewer.all(colorblindFriendly = TRUE)
+
+grafik_8 <- bike_data %>% 
+  ggplot(aes(Hour, `Rented Bike Count`, color = day)) +
+  geom_smooth(se = F, size = 2) +
+  xlab("Uhrzeit") +
+  ylab("Anzahl ausgeliehener Fahrräder")+
+  scale_color_discrete("")+
+  scale_color_brewer(palette = "Paired")+
+  theme_minimal()
+
+grafik_8
+```
+```{r}
+#Schritt 2: Den Slider hinzufügen
+ggplotly(grafik_8, dynamicTicks = TRUE) %>%
+  rangeslider() %>%
+  layout(hovermode = "x", title = "Der Trend von Fahrradausleihen zu verschiedenen Zeiten und an Wochentagen")
 ```
 
-#LO3:
+#LO3: HCl basics
+```{r}
+# Einfacher Linienplot zum Regen in Seoul
+
+ggplot(bike_data) +
+  geom_line(aes(x=Date,y=Snowfall),color="deepskyblue")+
+  geom_line(aes(x=Date, y=Rainfall), color="navy")+
+  labs(title="Täglich gemessener Schneefall und Regen über ein Jahr")+
+  xlab(label = "Datum")+ ylab(label = " ")+
+  scale_x_date(date_breaks="months",date_labels="%Y-%m")+
+  theme_minimal()
+
+rslocator <- function(n=512, type="p", ...)
+ {
+ on.exit(return(list(x=x,y=y))) # output even when function is canceled with ESC in console
+ x <- y <- NULL
+ i <- 1
+ while(i<=n)
+   {
+   d <- locator(1)
+   if(is.null(d)) break # If user pressed ESC in Rstudio Graphics window
+   x <- c(x, d$x)
+   y <- c(y, d$y)
+   points(x,y, type=type, ...)
+   i <- i+1
+   }
+ }
+```
+
 #LO4: Evaluation
